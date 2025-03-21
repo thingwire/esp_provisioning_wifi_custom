@@ -135,7 +135,7 @@ class EspProvisioningBloc
       );
       wifiProvisioned = (await espProvisioningService
           .provisionWifi(event.bluetoothDevice, event.proofOfPossession,
-              event.wifiNetwork, event.password)
+              event.wifiNetwork, event.password, event.custom_data)
           .timeout(const Duration(seconds: TIMEOUT), onTimeout: () {
         timedOut = true;
         return false;

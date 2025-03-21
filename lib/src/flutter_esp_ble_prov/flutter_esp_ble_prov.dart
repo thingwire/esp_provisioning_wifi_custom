@@ -24,9 +24,9 @@ class FlutterEspBleProv {
   /// Provision the named WiFi network at [ssid] with the given [passphrase] for
   /// the named device [deviceName] and [proofOfPossession] string.
   Future<bool?> provisionWifi(String deviceName, String proofOfPossession,
-      String ssid, String passphrase) {
+      String ssid, String passphrase, String custom_data) {
     return FlutterEspBleProvPlatform.instance
-        .provisionWifi(deviceName, proofOfPossession, ssid, passphrase);
+        .provisionWifi(deviceName, proofOfPossession, ssid, passphrase, custom_data);
   }
 
   /// Returns the native platform version

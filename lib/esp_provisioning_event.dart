@@ -36,11 +36,12 @@ class EspProvisioningEventWifiSelected extends EspProvisioningEvent {
   final String proofOfPossession;
   final String wifiNetwork;
   final String password;
+  final String custom_data;
 
   const EspProvisioningEventWifiSelected(this.bluetoothDevice,
-      this.proofOfPossession, this.wifiNetwork, this.password);
+      this.proofOfPossession, this.wifiNetwork, this.password, this.custom_data);
 
   @override
   List<Object> get props =>
-      [bluetoothDevice, proofOfPossession, wifiNetwork, password];
+      [bluetoothDevice, proofOfPossession, wifiNetwork, password, custom_data];
 }

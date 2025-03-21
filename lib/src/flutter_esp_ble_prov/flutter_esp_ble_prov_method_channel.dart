@@ -46,12 +46,13 @@ class MethodChannelFlutterEspBleProv extends FlutterEspBleProvPlatform {
 
   @override
   Future<bool?> provisionWifi(String deviceName, String proofOfPossession,
-      String ssid, String passphrase) async {
+      String ssid, String passphrase, String custom_data) async {
     final args = {
       'deviceName': deviceName,
       'proofOfPossession': proofOfPossession,
       'ssid': ssid,
-      'passphrase': passphrase
+      'passphrase': passphrase,
+      'custom-data': custom_data
     };
     return await methodChannel.invokeMethod<bool?>('provisionWifi', args);
   }

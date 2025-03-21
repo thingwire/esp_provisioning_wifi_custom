@@ -46,7 +46,7 @@ void main() {
       'emits EspProvisioningStatus.networkChosen and error when EspProvisioningEventWifiSelected is added',
       build: () => espProvisioningBloc,
       act: (bloc) => bloc.add(const EspProvisioningEventWifiSelected(
-          "device", "pop", "ssid", "password")),
+          "device", "pop", "ssid", "password","custom_data")),
       expect: () => [
         const EspProvisioningState(
             status: EspProvisioningStatus.networkChosen, wifiNetwork: "ssid")
