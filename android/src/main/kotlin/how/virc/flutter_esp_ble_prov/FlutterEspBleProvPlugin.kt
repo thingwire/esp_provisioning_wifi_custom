@@ -307,76 +307,85 @@ class WifiProvisionManager(boss: Boss) : ActionManager(boss) {
     val conn = boss.connector(deviceName) ?: return
 
     boss.connect(conn, proofOfPossession) { esp ->
-      boss.d("provision: start")
+      boss.d("connection established")
 
+      // Send custom data before starting WiFi provisioning
+      if (customData.isNotEmpty()) {
+        try {
+          boss.d("Sending custom data before provisioning: $customData")
 
-      esp.provision(ssid, passphrase, object : ProvisionListener {
-        override fun createSessionFailed(e: java.lang.Exception?) {
-          boss.e("wifiprovision createSessionFailed")
-        }
+          // Create a ResponseListener to handle the response
+          val responseListener = object : com.espressif.provisioning.listeners.ResponseListener {
+            override fun onSuccess(returnData: ByteArray?) {
+              val responseStr = returnData?.let { String(it) } ?: "null"
+              boss.d("Custom data response: $responseStr")
 
-        override fun wifiConfigSent() {
-          boss.d("wifiConfigSent")
+              // Start WiFi provisioning after custom data is sent successfully
+              startWifiProvisioning(esp, ssid, passphrase, ctx)
+            }
 
-        }
-
-        override fun wifiConfigFailed(e: java.lang.Exception?) {
-          boss.e("wifiConfigFailed $e")
-          ctx.result.success(false)
-        }
-
-        override fun wifiConfigApplied() {
-          boss.d("wifiConfigApplied")
-        }
-
-        override fun wifiConfigApplyFailed(e: java.lang.Exception?) {
-          boss.e("wifiConfigApplyFailed $e")
-          ctx.result.success(false)
-        }
-
-        override fun provisioningFailedFromDevice(failureReason: ESPConstants.ProvisionFailureReason?) {
-          boss.e("provisioningFailedFromDevice $failureReason")
-          ctx.result.success(false)
-        }
-
-        override fun deviceProvisioningSuccess() {
-          boss.d("deviceProvisioningSuccess")
-
-
-// If custom data is provided, send it to the ESP device
-          if (customData.isNotEmpty()) {
-            try {
-              boss.d("Sending custom data: $customData")
-
-              // Create a ResponseListener to handle the response
-              val responseListener = object : com.espressif.provisioning.listeners.ResponseListener {
-                override fun onSuccess(returnData: ByteArray?) {
-                  val responseStr = returnData?.let { String(it) } ?: "null"
-                  boss.d("Custom data response: $responseStr")
-                }
-
-                override fun onFailure(e: java.lang.Exception) {
-                  boss.e("Error receiving custom data response: $e")
-                }
-              }
-
-              // Call the method with all required parameters
-              esp.sendDataToCustomEndPoint("custom-data", customData.toByteArray(), responseListener)
-
-            } catch (e: Exception) {
-              boss.e("Error sending custom data: $e")
-              // Continue with provisioning even if custom data sending fails
+            override fun onFailure(e: java.lang.Exception) {
+              boss.e("Error receiving custom data response: $e")
+              // Start WiFi provisioning even if custom data fails
+              startWifiProvisioning(esp, ssid, passphrase, ctx)
             }
           }
-          ctx.result.success(true)
-        }
 
-        override fun onProvisioningFailed(e: java.lang.Exception?) {
-          boss.e("onProvisioningFailed")
-          ctx.result.success(false)
+          // Call the method with all required parameters
+          esp.sendDataToCustomEndPoint("custom-data", customData.toByteArray(), responseListener)
+
+        } catch (e: Exception) {
+          boss.e("Error sending custom data: $e")
+          // Start WiFi provisioning even if custom data sending fails
+          startWifiProvisioning(esp, ssid, passphrase, ctx)
         }
-      })
+      } else {
+        // No custom data to send, start WiFi provisioning directly
+        startWifiProvisioning(esp, ssid, passphrase, ctx)
+      }
     }
+  }
+
+  // Helper method to start WiFi provisioning
+  private fun startWifiProvisioning(esp: ESPDevice, ssid: String, passphrase: String, ctx: CallContext) {
+    esp.provision(ssid, passphrase, object : ProvisionListener {
+      override fun createSessionFailed(e: java.lang.Exception?) {
+        boss.e("wifiprovision createSessionFailed")
+      }
+
+      override fun wifiConfigSent() {
+        boss.d("wifiConfigSent")
+      }
+
+      override fun wifiConfigFailed(e: java.lang.Exception?) {
+        boss.e("wifiConfigFailed $e")
+        ctx.result.success(false)
+      }
+
+      override fun wifiConfigApplied() {
+        boss.d("wifiConfigApplied")
+      }
+
+      override fun wifiConfigApplyFailed(e: java.lang.Exception?) {
+        boss.e("wifiConfigApplyFailed $e")
+        ctx.result.success(false)
+      }
+
+      override fun provisioningFailedFromDevice(failureReason: ESPConstants.ProvisionFailureReason?) {
+        boss.e("provisioningFailedFromDevice $failureReason")
+        ctx.result.success(false)
+      }
+
+      override fun deviceProvisioningSuccess() {
+        boss.d("deviceProvisioningSuccess")
+        ctx.result.success(true)
+      }
+
+      override fun onProvisioningFailed(e: java.lang.Exception?) {
+        boss.e("onProvisioningFailed")
+        ctx.result.success(false)
+      }
+    })
   }
 }
 
