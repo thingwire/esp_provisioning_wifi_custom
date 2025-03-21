@@ -294,7 +294,6 @@ class WifiScanManager(boss: Boss) : ActionManager(boss) {
   }
 }
 
-
 class WifiProvisionManager(boss: Boss) : ActionManager(boss) {
   override fun call(ctx: CallContext) {
     boss.e("provisionWifi ${ctx.call.arguments}")
@@ -315,17 +314,21 @@ class WifiProvisionManager(boss: Boss) : ActionManager(boss) {
         try {
           boss.d("Sending custom data: $customData")
 
-          // Use the endpoint "custom-data" as registered on the ESP device
-          esp.sendDataToCustomEndPoint("custom-data", customData.toByteArray(), object : ResponseListener {
-            override fun onSuccess(data: ByteArray?) {
-              val responseStr = data?.let { String(it) } ?: "null"
+          // Create a ResponseListener to handle the response
+          val responseListener = object : com.espressif.provisioning.listeners.ResponseListener {
+            override fun onSuccess(returnData: ByteArray?) {
+              val responseStr = returnData?.let { String(it) } ?: "null"
               boss.d("Custom data response: $responseStr")
             }
 
-            override fun onFailure(e: Exception) {
+            override fun onFailure(e: java.lang.Exception) {
               boss.e("Error receiving custom data response: $e")
             }
-          })
+          }
+
+          // Call the method with all required parameters
+          esp.sendDataToCustomEndPoint("custom-data", customData.toByteArray(), responseListener)
+
         } catch (e: Exception) {
           boss.e("Error sending custom data: $e")
           // Continue with provisioning even if custom data sending fails
@@ -373,7 +376,6 @@ class WifiProvisionManager(boss: Boss) : ActionManager(boss) {
     }
   }
 }
-
 
 /** FlutterEspBleProvPlugin */
 class FlutterEspBleProvPlugin : FlutterPlugin, MethodCallHandler, ActivityAware, PluginRegistry.ActivityResultListener {
