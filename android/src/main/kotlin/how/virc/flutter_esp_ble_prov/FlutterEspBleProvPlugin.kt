@@ -318,6 +318,31 @@ class WifiProvisionManager(boss: Boss) : ActionManager(boss) {
         override fun wifiConfigSent() {
           boss.d("wifiConfigSent")
 
+        }
+
+        override fun wifiConfigFailed(e: java.lang.Exception?) {
+          boss.e("wifiConfigFailed $e")
+          ctx.result.success(false)
+        }
+
+        override fun wifiConfigApplied() {
+          boss.d("wifiConfigApplied")
+        }
+
+        override fun wifiConfigApplyFailed(e: java.lang.Exception?) {
+          boss.e("wifiConfigApplyFailed $e")
+          ctx.result.success(false)
+        }
+
+        override fun provisioningFailedFromDevice(failureReason: ESPConstants.ProvisionFailureReason?) {
+          boss.e("provisioningFailedFromDevice $failureReason")
+          ctx.result.success(false)
+        }
+
+        override fun deviceProvisioningSuccess() {
+          boss.d("deviceProvisioningSuccess")
+
+
 // If custom data is provided, send it to the ESP device
           if (customData.isNotEmpty()) {
             try {
@@ -343,31 +368,6 @@ class WifiProvisionManager(boss: Boss) : ActionManager(boss) {
               // Continue with provisioning even if custom data sending fails
             }
           }
-        }
-
-        override fun wifiConfigFailed(e: java.lang.Exception?) {
-          boss.e("wifiConfiFailed $e")
-          ctx.result.success(false)
-        }
-
-        override fun wifiConfigApplied() {
-          boss.d("wifiConfigApplied")
-        }
-
-        override fun wifiConfigApplyFailed(e: java.lang.Exception?) {
-          boss.e("wifiConfigApplyFailed $e")
-          ctx.result.success(false)
-        }
-
-        override fun provisioningFailedFromDevice(failureReason: ESPConstants.ProvisionFailureReason?) {
-          boss.e("provisioningFailedFromDevice $failureReason")
-          ctx.result.success(false)
-        }
-
-        override fun deviceProvisioningSuccess() {
-          boss.d("deviceProvisioningSuccess")
-
-
           ctx.result.success(true)
         }
 
