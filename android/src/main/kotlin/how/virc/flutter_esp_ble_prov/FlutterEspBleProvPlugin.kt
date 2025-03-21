@@ -302,10 +302,28 @@ class WifiProvisionManager(boss: Boss) : ActionManager(boss) {
     val passphrase = ctx.arg("passphrase") ?: return
     val deviceName = ctx.arg("deviceName") ?: return
     val proofOfPossession = ctx.arg("proofOfPossession") ?: return
+    // Extract the custom-data parameter
+    val customData = ctx.call.argument<String>("custom-data") ?: ""
+
     val conn = boss.connector(deviceName) ?: return
 
     boss.connect(conn, proofOfPossession) { esp ->
       boss.d("provision: start")
+
+      // If custom data is provided, send it to the ESP device
+      if (customData.isNotEmpty()) {
+        try {
+          boss.d("Sending custom data: $customData")
+
+          // Use the endpoint "custom-data" as registered on the ESP device
+          val response = esp.sendDataToCustomEndPoint("custom-data", customData.toByteArray())
+          boss.d("Custom data response: $response")
+        } catch (e: Exception) {
+          boss.e("Error sending custom data: $e")
+          // Continue with provisioning even if custom data sending fails
+        }
+      }
+
       esp.provision(ssid, passphrase, object : ProvisionListener {
         override fun createSessionFailed(e: java.lang.Exception?) {
           boss.e("wifiprovision createSessionFailed")
@@ -343,11 +361,9 @@ class WifiProvisionManager(boss: Boss) : ActionManager(boss) {
           boss.e("onProvisioningFailed")
           ctx.result.success(false)
         }
-
       })
     }
   }
-
 }
 
 

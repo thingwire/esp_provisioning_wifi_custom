@@ -30,33 +30,36 @@ public class SwiftFlutterEspBleProvPlugin: NSObject, FlutterPlugin {
             let proofOfPossession = arguments["proofOfPossession"] as! String
             let ssid = arguments["ssid"] as! String
             let passphrase = arguments["passphrase"] as! String
+            // Extract the custom data
+            let customData = arguments["custom-data"] as? String ?? ""
             provisionService.provision(
                 deviceName: deviceName,
                 proofOfPossession: proofOfPossession,
                 ssid: ssid,
-                passphrase: passphrase
+                passphrase: passphrase,
+                customData: customData
             )
         } else {
             result("iOS " + UIDevice.current.systemVersion)
         }
     }
-    
+
 }
 
 protocol ProvisionService {
     var result: FlutterResult { get }
     func searchDevices(prefix: String) -> Void
     func scanWifiNetworks(deviceName: String, proofOfPossession: String) -> Void
-    func provision(deviceName: String, proofOfPossession: String, ssid: String, passphrase: String) -> Void
+    func provision(deviceName: String, proofOfPossession: String, ssid: String, passphrase: String, customData: String) -> Void
 }
 
 private class BLEProvisionService: ProvisionService {
     fileprivate var result: FlutterResult
-    
+
     init(result: @escaping FlutterResult) {
         self.result = result
     }
-    
+
     func searchDevices(prefix: String) {
         ESPProvisionManager.shared.searchESPDevices(devicePrefix: prefix, transport:.ble, security:.secure) { deviceList, error in
             if(error != nil) {
@@ -67,7 +70,7 @@ private class BLEProvisionService: ProvisionService {
             }))
         }
     }
-    
+
     func scanWifiNetworks(deviceName: String, proofOfPossession: String) {
         self.connect(deviceName: deviceName, proofOfPossession: proofOfPossession) {
             device in
@@ -81,10 +84,29 @@ private class BLEProvisionService: ProvisionService {
             }
         }
     }
-    
-    func provision(deviceName: String, proofOfPossession: String, ssid: String, passphrase: String) {
+
+    func provision(deviceName: String, proofOfPossession: String, ssid: String, passphrase: String, customData: String = "") {
         self.connect(deviceName: deviceName, proofOfPossession: proofOfPossession){
             device in
+
+            // Send custom data if it's not empty
+            if !customData.isEmpty {
+                NSLog("Sending custom data to device: \(customData)")
+
+                // Convert string to Data
+                if let data = customData.data(using: .utf8) {
+                    // Send data to the custom endpoint
+                    device?.sendData(data, toEndpoint: "custom-data") { response, error in
+                        if let error = error {
+                            NSLog("Error sending custom data: \(error.localizedDescription)")
+                        } else if let response = response {
+                            let responseString = String(data: response, encoding: .utf8) ?? "Unable to decode response"
+                            NSLog("Custom data response: \(responseString)")
+                        }
+                    }
+                }
+            }
+
             device?.provision(ssid: ssid, passPhrase: passphrase) { status in
                 switch status {
                 case .success:
@@ -99,10 +121,10 @@ private class BLEProvisionService: ProvisionService {
             }
         }
     }
-    
+
     private func connect(deviceName: String, proofOfPossession: String, completionHandler: @escaping (ESPDevice?) -> Void) {
         ESPProvisionManager.shared.createESPDevice(deviceName: deviceName, transport: .ble, security: .secure, proofOfPossession: proofOfPossession) { espDevice, error in
-            
+
             if(error != nil) {
                 ESPErrorHandler.handle(error: error!, result: self.result)
             }
@@ -118,7 +140,7 @@ private class BLEProvisionService: ProvisionService {
             }
         }
     }
-    
+
 }
 
 private class ESPErrorHandler {
