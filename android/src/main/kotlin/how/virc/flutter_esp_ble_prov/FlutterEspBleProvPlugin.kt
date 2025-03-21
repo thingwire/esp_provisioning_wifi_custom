@@ -316,8 +316,16 @@ class WifiProvisionManager(boss: Boss) : ActionManager(boss) {
           boss.d("Sending custom data: $customData")
 
           // Use the endpoint "custom-data" as registered on the ESP device
-          val response = esp.sendDataToCustomEndPoint("custom-data", customData.toByteArray())
-          boss.d("Custom data response: $response")
+          esp.sendDataToCustomEndPoint("custom-data", customData.toByteArray(), object : ResponseListener {
+            override fun onSuccess(data: ByteArray?) {
+              val responseStr = data?.let { String(it) } ?: "null"
+              boss.d("Custom data response: $responseStr")
+            }
+
+            override fun onFailure(e: Exception) {
+              boss.e("Error receiving custom data response: $e")
+            }
+          })
         } catch (e: Exception) {
           boss.e("Error sending custom data: $e")
           // Continue with provisioning even if custom data sending fails
