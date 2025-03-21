@@ -309,31 +309,7 @@ class WifiProvisionManager(boss: Boss) : ActionManager(boss) {
     boss.connect(conn, proofOfPossession) { esp ->
       boss.d("provision: start")
 
-      // If custom data is provided, send it to the ESP device
-      if (customData.isNotEmpty()) {
-        try {
-          boss.d("Sending custom data: $customData")
 
-          // Create a ResponseListener to handle the response
-          val responseListener = object : com.espressif.provisioning.listeners.ResponseListener {
-            override fun onSuccess(returnData: ByteArray?) {
-              val responseStr = returnData?.let { String(it) } ?: "null"
-              boss.d("Custom data response: $responseStr")
-            }
-
-            override fun onFailure(e: java.lang.Exception) {
-              boss.e("Error receiving custom data response: $e")
-            }
-          }
-
-          // Call the method with all required parameters
-          esp.sendDataToCustomEndPoint("custom-data", customData.toByteArray(), responseListener)
-
-        } catch (e: Exception) {
-          boss.e("Error sending custom data: $e")
-          // Continue with provisioning even if custom data sending fails
-        }
-      }
 
       esp.provision(ssid, passphrase, object : ProvisionListener {
         override fun createSessionFailed(e: java.lang.Exception?) {
@@ -365,6 +341,33 @@ class WifiProvisionManager(boss: Boss) : ActionManager(boss) {
 
         override fun deviceProvisioningSuccess() {
           boss.d("deviceProvisioningSuccess")
+
+          // If custom data is provided, send it to the ESP device
+          if (customData.isNotEmpty()) {
+            try {
+              boss.d("Sending custom data: $customData")
+
+              // Create a ResponseListener to handle the response
+              val responseListener = object : com.espressif.provisioning.listeners.ResponseListener {
+                override fun onSuccess(returnData: ByteArray?) {
+                  val responseStr = returnData?.let { String(it) } ?: "null"
+                  boss.d("Custom data response: $responseStr")
+                }
+
+                override fun onFailure(e: java.lang.Exception) {
+                  boss.e("Error receiving custom data response: $e")
+                }
+              }
+
+              // Call the method with all required parameters
+              esp.sendDataToCustomEndPoint("custom-data", customData.toByteArray(), responseListener)
+
+            } catch (e: Exception) {
+              boss.e("Error sending custom data: $e")
+              // Continue with provisioning even if custom data sending fails
+            }
+          }
+
           ctx.result.success(true)
         }
 
